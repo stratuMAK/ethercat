@@ -12,12 +12,12 @@
  *  per-cycle allocation creeps into the path, its fresh pages fault on
  *  first touch and this fails deterministically on any machine, without
  *  an RT kernel or tuned hardware. Latency itself is validated on the
- *  real system (see RT-SYSTEM-TEST.md).
+ *  real system (see docs/testing/rt-system-test.md).
  *
  *  mlockall() is attempted (after raising RLIMIT_MEMLOCK to the hard
  *  limit) but not required: with the default 8 MiB limit the library's
  *  thread stacks alone exceed it — a deployment note in its own right,
- *  see RT-SYSTEM-TEST.md. Without the lock the assertion still holds
+ *  see docs/testing/rt-system-test.md. Without the lock the assertion still holds
  *  for the allocation-regression class; the warm-up faults in every
  *  page the cyclic path touches.
  *

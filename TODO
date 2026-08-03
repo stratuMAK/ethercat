@@ -7,6 +7,9 @@ vim700: spelllang=en spell
 -------------------------------------------------------------------------------
 
 See issues on
+https://github.com/stratuMAK/ethercat/issues
+
+Upstream (IgH) issues, for items that concern the shared core:
 https://gitlab.com/etherlab.org/ethercat/-/issues
 
 -------------------------------------------------------------------------------
@@ -44,9 +47,9 @@ Future issues:
 * External memory for SDO transfers.
 * Move master threads, slave handlers and state machines into a user
   space daemon.
-  -> Done on the uspace branch: the full master core builds as a
-     userspace shared library (--enable-uspace-master) with a
-     standalone ec_master daemon; see USERSPACE-MASTER-IMPL.md.
+  -> Done: the full master core builds as a userspace shared library
+     (--enable-uspace-master) with a standalone ec_master daemon; see
+     docs/design/userspace-master.md.
 * Allow master requesting when in ORPHANED phase
 * Mailbox gateway.
 * Separate CoE debugging.
@@ -54,8 +57,9 @@ Future issues:
 * Optimize alignment of process data.
 * Interface/buffers for asynchronous domain IO.
 * Make scanning and configuration run parallel (each).
-  -> Slave configuration runs parallel on the uspace branch (Parallel
-     Slave Configuration, PSC).
+  -> Slave configuration runs parallel (Parallel Slave Configuration,
+     PSC); see docs/design/parallel-slave-config.md. Scanning is still
+     serial.
 * ethercat tool:
     - Add a -n (numeric) switch.
 	- Check for unwanted options.
@@ -68,6 +72,31 @@ Future issues:
     - Implement reading from stream for soe_write.
     - Output error after usage.
 * Fix bus scan hang when calling ecrt_master_deactivate().
+
+Open items from the production-readiness review
+(docs/history/production-readiness-review-2026-07.md — everything else in
+that review is closed):
+
+* Cosmetic warning classes left un-triaged: -Wunused-parameter (~52),
+  -Wtype-limits (~18), -Wstringop-truncation (~15, all NUL-safe on
+  inspection), -Wsign-compare (~14). CI suppresses the first two by
+  merit, not to spare a diff.
+* Optional RTSan runtime job (-fsanitize=realtime, pinned clang) next to
+  the static rt-effects check.
+* Propose '#define ECRT_RT_ATTR GOMC_NONBLOCKING' to LinuxCNC so it can
+  retire its src/hal/drivers/ethercat/ecrt_rt_api.h shim.
+* EoE/CoE shared-mailbox contention is handled by drop-and-retry; a
+  mailbox dispatcher would remove the "Other mailbox protocol response"
+  warnings.
+* Multi-fragment log messages from concurrent FSMs can interleave (line
+  assembly is printk-style; out of scope for the log ring).
+* T5: hardware rig + first recorded result in
+  docs/testing/rt-system-test.md.
+* Tool commands that the datagram simulator cannot reach (FoE, SoE, EoE
+  commands; 'config', 'domains') remain hardware-gated in the tool test
+  matrix.
+* Dynamic FoE buffer size in the tool IPC path (master/uspace/tool_api.c
+  hardcodes 10000 bytes).
 
 Documentation
 

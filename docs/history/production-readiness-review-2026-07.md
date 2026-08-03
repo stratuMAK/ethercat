@@ -1,5 +1,19 @@
 # Production-Readiness Review — Userspace Master Port
 
+> **Historical record — frozen.** This is a point-in-time audit of the port,
+> kept for the reasoning and the verification evidence behind the decisions it
+> drove. It is not a live task list: the roadmap in §5 and the closure list in
+> §6 are complete, and the handful of items that were still open when the
+> review was closed have been lifted into `TODO` ("Open items from the
+> production-readiness review"). Nothing here is updated as the code moves on.
+>
+> Documents referenced by their old root-level names have since moved:
+> `USERSPACE-MASTER-IMPL.md` → [`docs/design/userspace-master.md`](../design/userspace-master.md),
+> `USERSPACE-TOOL-IMPL.md` → [`docs/design/userspace-tool.md`](../design/userspace-tool.md),
+> `PAL_IMPLEMENTATION.md` → [`docs/design/pal.md`](../design/pal.md) (rewritten
+> as an architecture doc), `RT-SYSTEM-TEST.md` →
+> [`docs/testing/rt-system-test.md`](../testing/rt-system-test.md).
+
 Date: 2026-07-20 · Branch: `uspace` @ `f5ed03a1` · Scope: userspace port
 (`--enable-uspace-master`), PAL, transports, tool/IPC, with kernel mode retained.
 

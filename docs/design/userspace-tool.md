@@ -1,10 +1,10 @@
-# Userspace `ethercat` Command-Line Tool Implementation
+# Userspace `ethercat` Command-Line Tool
 
 ## Overview
 
-Enable the `ethercat` command-line tool to work with the userspace master
-(`EC_USPACE_MASTER` build). The tool communicates with the application process
-hosting the master(s) via a Unix domain socket instead of ioctl on
+How the `ethercat` command-line tool works against the userspace master
+(`EC_USPACE_MASTER` build): it talks to the application process hosting the
+master(s) over a Unix domain socket instead of issuing ioctls on
 `/dev/EtherCATN`.
 
 The design follows the same PAL pattern used in the master code: **zero
@@ -496,63 +496,28 @@ in both modes.
 - `master/kernel/ioctl.c` — format strings and `size_t` intermediates updated for fixed-width wire types
 - `lib/` — untouched (disabled when uspace-master enabled)
 
-## Implementation Phases
+## Command coverage
 
-### Phase 1: Read-Only Commands
+Every ioctl the kernel backend serves has an IPC counterpart, including the
+trailing-data commands (domain data, SDO upload/download, SII, registers,
+FoE, SoE) and the EoE ones (`EC_CMD_EOE_HANDLER`,
+`EC_CMD_SLAVE_EOE_IP_PARAM`, `EC_CMD_CONFIG_EOE_IP_PARAM`, the latter two
+behind `#ifdef EC_EOE`). The tool therefore behaves identically on both
+backends.
 
-Implement the infrastructure (shared header, backend abstraction, IPC
-server skeleton, master registry) and the following read-only commands:
+Verification is split by what the simulator can reach:
 
-- [x] Extract `ec_ioctl_data.h` from `master/kernel/ioctl.h`
-- [x] Make `master/kernel/ioctl.h` a thin wrapper including shared header
-- [x] Create `tool/MasterDeviceBackend.h` (abstract interface)
-- [x] Create `tool/kernel/MasterDeviceKernel.cpp` (ioctl backend)
-- [x] Refactor `tool/MasterDevice.cpp` to delegate to backend
-- [x] Change `tool/Command.h` include to `ec_ioctl_data.h`
-- [x] Update `tool/Makefile.am` with conditional backend selection
-- [x] Verify kernel-mode build still works unchanged
-- [x] Change `ecrt_lib_init()` signature: add `socket_path` parameter
-- [x] Update `master/uspace/main.c` to pass socket path (add `-s`/`--socket`)
-- [x] Implement master registry in `master/uspace/cdev.c`
-- [x] Refactor `master/uspace/cdev.c` to global singleton IPC server
-- [x] Create `tool/uspace/MasterDeviceUspace.cpp` (socket backend)
-- [x] Add `--socket`/`-S` option and `EC_SOCKET_PATH` to `tool/main.cpp`
-- [x] IPC: `EC_CMD_MODULE` (version magic + master count)
-- [x] IPC: `EC_CMD_MASTER` (master info)
-- [x] IPC: `EC_CMD_SLAVE` (slave info)
-- [x] IPC: `EC_CMD_SLAVE_SYNC`, `EC_CMD_SLAVE_SYNC_PDO`, `EC_CMD_SLAVE_SYNC_PDO_ENTRY`
-- [x] IPC: `EC_CMD_DOMAIN`, `EC_CMD_DOMAIN_FMMU`
-- [x] IPC: `EC_CMD_SLAVE_SDO`, `EC_CMD_SLAVE_SDO_ENTRY`
-- [x] IPC: `EC_CMD_CONFIG`, `EC_CMD_CONFIG_PDO`, `EC_CMD_CONFIG_PDO_ENTRY`
-- [x] IPC: `EC_CMD_CONFIG_SDO`, `EC_CMD_CONFIG_IDN`, `EC_CMD_CONFIG_FLAG`
-- [x] IPC: `EC_CMD_MASTER_DEBUG`, `EC_CMD_MASTER_RESCAN`, `EC_CMD_SLAVE_STATE`
-- [x] Test: `ethercat master`, `ethercat slaves`, `ethercat pdos`, `ethercat sdos` ✅
-- [ ] Test: `ethercat config`, `ethercat domains` *(requires userspace application with active config/domains)*
-- [x] Test: `ethercat cstruct` ✅
-- [x] Test: `ethercat graph`, `ethercat xml`, `ethercat version` ✅
-
-### Phase 2: Read-Write Commands
-
-- [x] IPC: `EC_CMD_DOMAIN_DATA` (requires pointer-based trailing data transfer)
-- [x] IPC: `EC_CMD_SLAVE_SDO_UPLOAD` (with trailing data response)
-- [x] IPC: `EC_CMD_SLAVE_SDO_DOWNLOAD` (with trailing data request)
-- [x] IPC: `EC_CMD_SLAVE_SII_READ`, `EC_CMD_SLAVE_SII_WRITE` (trailing data)
-- [x] IPC: `EC_CMD_SLAVE_REG_READ`, `EC_CMD_SLAVE_REG_WRITE` (trailing data)
-- [x] IPC: `EC_CMD_SLAVE_FOE_READ`, `EC_CMD_SLAVE_FOE_WRITE` (trailing data)
-- [x] IPC: `EC_CMD_SLAVE_SOE_READ`, `EC_CMD_SLAVE_SOE_WRITE` (trailing data)
-- [x] Test: `ethercat upload`, `ethercat download` ✅
-- [x] Test: `ethercat states`, `ethercat debug`, `ethercat rescan` ✅
-- [x] Test: `ethercat alias`, `ethercat sii_read`, `ethercat sii_write` ✅
-- [x] Test: `ethercat reg_read`, `ethercat reg_write` ✅ *(reg_write confirmed working on writable registers; read-only registers correctly return EIO)*
-- [ ] Test: `ethercat foe_read`, `ethercat foe_write` *(requires FoE-capable slave)*
-- [ ] Test: `ethercat soe_read`, `ethercat soe_write` *(requires SoE/Sercos-capable slave)*
-
-### Phase 3: EoE Commands (if needed)
-
-- [x] IPC: `EC_CMD_EOE_HANDLER` (implemented behind `#ifdef EC_EOE`)
-- [ ] IPC: `EC_CMD_SLAVE_EOE_IP_PARAM`
-- [ ] IPC: `EC_CMD_CONFIG_EOE_IP_PARAM`
-- [ ] Test: `ethercat eoe`, `ethercat ip` *(requires EoE-capable slave)*
+- Automated (`tests/test_tool_ipc`, real `ethercat` binary against the
+  in-process IPC server on a simulated bus): master status, slave listing,
+  SDO upload/download round trip, `sdos` dictionary listing, abort paths.
+- Manually verified against hardware: `pdos`, `cstruct`, `graph`, `xml`,
+  `version`, `states`, `debug`, `rescan`, `alias`, `sii_read`, `sii_write`,
+  `reg_read`, `reg_write` (writable registers succeed; read-only ones
+  correctly return `EIO`).
+- Still hardware-gated, i.e. exercised by neither: `foe_read`/`foe_write`
+  (needs an FoE-capable slave), `soe_read`/`soe_write` (SoE/Sercos slave),
+  `eoe`/`ip` (EoE-capable slave), and `config`/`domains` (needs a userspace
+  application holding an active configuration). Tracked in `TODO`.
 
 ## Items to Watch
 
@@ -577,16 +542,16 @@ redirect it to an arbitrary file. Over-long socket paths are rejected
 
 ### 2. `ec_master` Daemon Socket Path
 
-The `ec_master` standalone daemon (`master/uspace/main.c`) needs a new
-CLI option to pass the socket path through to `ecrt_lib_init()`:
+The `ec_master` standalone daemon (`master/uspace/main.c`) passes the socket
+path through to `ecrt_lib_init()`:
 
 ```
 ec_master -i eth0 -s /var/run/ethercat.sock
 ec_master -i eth0 --socket /var/run/ethercat.sock
 ```
 
-Default: `EC_IPC_DEFAULT_SOCKET_PATH`. This follows the same pattern as
-other `ec_master` options.
+Default: `EC_IPC_DEFAULT_SOCKET_PATH`. The tool side has the matching
+`--socket`/`-S` option and honours `EC_SOCKET_PATH`.
 
 ### 3. Concurrent Tool Connections
 
@@ -613,7 +578,6 @@ the tool is a short-lived process.
 
 ### 6. Relationship to `master/uspace/cdev.h` Stub
 
-`PAL_IMPLEMENTATION.md` notes that `master/uspace/cdev.h` is a stub with
-`//TODO struct cdev`. The IPC server (`cdev.c`) effectively replaces
-the need for a userspace cdev implementation. The stub can remain as-is
-or be removed once the IPC server is complete.
+`master/uspace/cdev.h` was originally a stub (`//TODO struct cdev`) from
+the PAL migration. The IPC server (`cdev.c`) replaces the need for a
+userspace cdev implementation entirely.

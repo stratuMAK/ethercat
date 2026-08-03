@@ -2,14 +2,15 @@
 
 ## Overview
 
-Implement a userspace master library (`libethercat.so`) that embeds the full
-EtherCAT master core into a shared library, allowing user applications to
-run the master in-process. This replaces the kernel-based master + ioctl
-client library architecture with a single userspace library.
+The userspace master library (`libethercat.so.2`) embeds the full EtherCAT
+master core into a shared library, so an application runs the master
+in-process. It replaces — for that build — the kernel master plus ioctl
+client library architecture with a single userspace library. Kernel mode is
+unaffected and builds from the same core; see [pal.md](pal.md).
 
 ## Architecture
 
-### Current Architecture (Kernel Mode)
+### Kernel mode
 
 ```
 Application → lib/libethercat.so (ioctl client) → /dev/EtherCATN → kernel module (master core)
@@ -19,7 +20,7 @@ Application → lib/libethercat.so (ioctl client) → /dev/EtherCATN → kernel 
 - `ec_master_t` in `lib/master.h` is `{ int fd; ... }` — a file descriptor wrapper
 - Master core runs in kernel space
 
-### New Architecture (Userspace Master Mode)
+### Userspace master mode
 
 ```
 Application → libethercat.so (master core + PAL + transport)
@@ -402,43 +403,9 @@ When enabled, implies:
 - `master/*.c` (other than master.c EoE hook) — master core unchanged
 - `lib/` — untouched (disabled when uspace-master enabled)
 
-## Task Tracking
+## Invariants and Decisions
 
-- [x] Extract device functions from `main.c` → `device_uspace.c`
-- [x] Implement `master/uspace/module.c`
-- [x] Fix MAC address pointer lifetime (copy in module.c)
-- [x] Remove transport ownership flag (caller always owns)
-- [x] Remove interface name strdup (read from transport->interface)
-- [x] Rename `include/ec_transport.h` → `include/ectp.h`
-- [x] Move transport files to top-level `transport/` directory
-- [x] Simplify `ecrt_startup_master` (transport pointer args, caller-owned)
-- [x] Remove `ecrt_startup_master_custom()` (superseded by new signature)
-- [x] Add `ec_transport_create_by_name()` convenience function
-- [x] Change `run_on_cpu` to `int`, use `-1` for no binding
-- [x] Remove `EC_USPACE_HAVE_XDP` from public headers; use `HAVE_XDP` internally
-- [x] Make `ec_transport_type` enum always complete (no `#ifdef` around values)
-- [x] `ec_transport_create()` logs error for unavailable types
-- [x] Modify `include/ecrt.h` with new API
-- [x] Update `master/uspace/main.c` to use new API (create/destroy transports)
-- [x] Create `master/uspace/Makefile.am`
-- [x] Modify `configure.ac` (`--enable-uspace-master` + implied options)
-- [x] Modify `master/Makefile.am` (conditional subdirectory)
-- [x] Update `AC_CONFIG_FILES` list
-- [x] XDP/BPF library detection in configure
-- [x] Implement multi-master CLI parsing in main.c
-- [x] Implement daemonization (double-fork, setsid, PID file)
-- [x] Implement syslog support (log callback in ecrt_lib_init)
-- [x] Implement --foreground / --log-stdout flags
-- [x] Update help text
-- [x] Test: build with `--enable-uspace-master`
-- [x] Test: build without (default kernel mode unchanged)
-- [x] Test: `ec_master` standalone binary works
-- [x] Test: application linked against `libethercat.so` works
-
-## Items to Watch
-
-The following are not bugs or blockers, but areas worth keeping in mind for
-future hardening and documentation.
+Properties of the implementation that are easy to break by accident.
 
 ### 1. Multiple Master Instances
 
@@ -452,30 +419,29 @@ the Multi-Master CLI Design section). Each `-i` starts a new master block with
 an auto-incremented index. All masters run concurrently and are shut down
 together on SIGINT/SIGTERM.
 
-### 2. Thread Safety of `ecrt_lib_init()` / `ecrt_lib_cleanup()` — **RESOLVED**
+### 2. Thread Safety of `ecrt_lib_init()` / `ecrt_lib_cleanup()`
 
-An `atomic_flag lib_initialized` guard has been added to `master/uspace/module.c`.
-A second call to `ecrt_lib_init()` logs a warning and returns 0 (no-op).
-The flag is cleared on failure (so retry is possible) and in `ecrt_lib_cleanup()`
-(so re-init after cleanup works).
+An `atomic_flag lib_initialized` guard in `master/uspace/module.c` makes
+initialization idempotent. A second call to `ecrt_lib_init()` returns
+`-EBUSY`. The flag is cleared on failure (so a retry is possible) and in
+`ecrt_lib_cleanup()` (so re-init after cleanup works).
 
-### 3. `ecrt_release_master()` Phase Safety — **RESOLVED**
+### 3. `ecrt_release_master()` Phase Safety
 
-A `if (!master) return;` NULL guard has been added at the top of
-`ecrt_release_master()` to prevent crashes on NULL input.
+`ecrt_release_master()` starts with an `if (!master) return;` NULL guard.
 
-The existing phase/active checks are correct for all normal sequences:
+The phase/active checks are correct for all normal sequences:
 
 - If `ecrt_master_activate()` was never called, `master->active` is 0 and the
   operation-phase teardown is correctly skipped.
 - If the master is in an error state where `phase` was not updated, the
   cleanup may skip necessary teardown. This matches kernel behavior.
 
-### 4. `EC_USPACE_MASTER` Define — **RESOLVED**
+### 4. `EC_USPACE_MASTER` Define
 
-`include/ecrt.h` has been renamed to `include/ecrt.h.in` and is now generated
-by `configure` via `AC_CONFIG_FILES`. The substitution `@EC_USPACE_MASTER_DEFINE@`
-is inserted after the header guard:
+`include/ecrt.h` is generated from `include/ecrt.h.in` by `configure` via
+`AC_CONFIG_FILES`. The substitution `@EC_USPACE_MASTER_DEFINE@` is inserted
+after the header guard:
 
 - When `--enable-uspace-master` is active: `#define EC_USPACE_MASTER 1`
 - Otherwise: empty

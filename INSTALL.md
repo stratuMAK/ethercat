@@ -82,7 +82,8 @@ $ ethercat slaves
 
 Applications embedding the library should read the realtime notes at
 `ecrt_lib_init()` in `ecrt.h` (memory locking and `RLIMIT_MEMLOCK`,
-nonblocking log callback, thread scheduling) and `RT-SYSTEM-TEST.md`.
+nonblocking log callback, thread scheduling) and
+[docs/testing/rt-system-test.md](docs/testing/rt-system-test.md).
 
 ---
 

@@ -31,7 +31,7 @@ vim: spelllang=en spell
   inside the application process as a shared library (`libethercat.so.2`)
   — no kernel module, no patched NIC drivers.
   - Kernel mode is fully retained; both modes share the same core through
-    a platform abstraction layer (PAL, see PAL_IMPLEMENTATION.md).
+    a platform abstraction layer (PAL, see docs/design/pal.md).
   - Standalone `ec_master` daemon for tool-only operation without an
     application.
 - Pluggable userspace transports (`ectp.h`):

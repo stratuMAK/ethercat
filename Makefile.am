@@ -71,11 +71,22 @@ noinst_HEADERS = \
 	globals.h
 
 EXTRA_DIST = \
+	CONTRIBUTING.md \
 	CodingStyle.md \
 	FEATURES.md \
 	INSTALL.md \
+	NEWS.md \
 	README.EoE \
 	README.md \
+	TODO \
+	docs/README.md \
+	docs/design/api-usage-notes.md \
+	docs/design/pal.md \
+	docs/design/parallel-slave-config.md \
+	docs/design/userspace-master.md \
+	docs/design/userspace-tool.md \
+	docs/history/production-readiness-review-2026-07.md \
+	docs/testing/rt-system-test.md \
 	ethercat.spec
 
 mydist:
