@@ -84,7 +84,7 @@ ec_master_t *ecrt_open_master(unsigned int master_index)
 #ifdef USE_RTDM
     master->fd = rt_dev_open(path, O_RDWR);
 #else
-    master->fd = open(path, O_RDWR);
+    master->fd = open(path, O_RDWR | O_CLOEXEC);
 #endif
     if (EC_IOCTL_IS_ERROR(master->fd)) {
         fprintf(stderr, "Failed to open %s: %s\n", path,

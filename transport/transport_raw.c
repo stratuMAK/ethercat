@@ -73,7 +73,8 @@ static int raw_open(ec_transport_t *transport, const char *interface)
     transport->priv = raw;
 
     /* Create AF_PACKET socket */
-    raw->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(EC_TRANSPORT_ETHERTYPE));
+    raw->socket_fd = socket(AF_PACKET, SOCK_RAW | SOCK_CLOEXEC,
+            htons(EC_TRANSPORT_ETHERTYPE));
     if (raw->socket_fd < 0) {
         ret = -errno;
         fprintf(stderr, "Failed to create raw socket: %s\n", strerror(errno));

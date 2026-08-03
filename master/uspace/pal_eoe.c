@@ -62,7 +62,7 @@ int ec_netdev_register(ec_netdev_t *dev)
     }
     
     /* Open TUN/TAP clone device */
-    fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
+    fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         fprintf(stderr, "EoE: Failed to open /dev/net/tun: %s\n", 
                 strerror(errno));
@@ -88,7 +88,7 @@ int ec_netdev_register(ec_netdev_t *dev)
     dev->fd = fd;
     
     /* Get interface index */
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    sock = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (sock >= 0) {
         memset(&ifr, 0, sizeof(ifr));
         snprintf(ifr.ifr_name, IFNAMSIZ, "%s", dev->name);
@@ -150,7 +150,7 @@ int ec_netdev_set_mac(ec_netdev_t *dev, const uint8_t mac[ETH_ALEN])
     memcpy(dev->dev_addr, mac, ETH_ALEN);
     
     /* Set MAC on TAP interface */
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    sock = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (sock < 0) {
         return -errno;
     }

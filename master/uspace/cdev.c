@@ -1171,8 +1171,9 @@ static int listener_fn(void *arg)
         if (fds[0].revents & POLLIN) {
             struct sockaddr_un client_addr;
             socklen_t client_len = sizeof(client_addr);
-            int client_fd = accept(cdev->sock_fd,
-                    (struct sockaddr *)&client_addr, &client_len);
+            int client_fd = accept4(cdev->sock_fd,
+                    (struct sockaddr *)&client_addr, &client_len,
+                    SOCK_CLOEXEC);
             if (client_fd >= 0) {
                 if (nfds < 1 + EC_IPC_MAX_CLIENTS) {
                     struct timeval tv;
@@ -1282,7 +1283,7 @@ int ec_ipc_server_start(const char *socket_path)
     atomic_store(&cdev->shutdown, 0);
 
     /* Create the listening socket. */
-    sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    sock_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if (sock_fd < 0) {
         ec_log(EC_LOG_ERR, "IPC: socket() failed: %s\n", strerror(errno));
         return -errno;

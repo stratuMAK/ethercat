@@ -75,7 +75,7 @@ static int read_sysfs_int(const char *path)
     char buf[32];
     int fd, n, val;
 
-    fd = open(path, O_RDONLY);
+    fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
         return -1;
     }
@@ -271,7 +271,7 @@ static int set_one_affinity(int irq, int cpu)
     int fd, n, ret;
 
     snprintf(path, sizeof(path), "/proc/irq/%d/smp_affinity", irq);
-    fd = open(path, O_WRONLY);
+    fd = open(path, O_WRONLY | O_CLOEXEC);
     if (fd < 0) {
         return -errno;
     }
