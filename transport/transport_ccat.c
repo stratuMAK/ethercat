@@ -332,7 +332,7 @@ static int ccat_open(ec_transport_t *transport, const char *interface)
         goto err_free;
     }
 
-    ccat->bar0_fd = open(path, O_RDWR | O_SYNC);
+    ccat->bar0_fd = open(path, O_RDWR | O_SYNC | O_CLOEXEC);
     if (ccat->bar0_fd < 0) {
         ret = -errno;
         fprintf(stderr, "CCAT: failed to open %s: %s\n",

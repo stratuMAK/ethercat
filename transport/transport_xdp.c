@@ -183,7 +183,7 @@ static int xdp_open(ec_transport_t *transport, const char *interface,
     transport->priv = xdp;
 
     /* Create temporary socket to get interface info */
-    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    sock_fd = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (sock_fd < 0) {
         ret = -errno;
         fprintf(stderr, "Failed to create socket: %s\n", strerror(errno));
@@ -262,6 +262,12 @@ static int xdp_open(ec_transport_t *transport, const char *interface,
         fprintf(stderr, "Failed to create XSK socket: %s\n", strerror(-ret));
         goto err_free_umem;
     }
+
+    /* libxdp creates its fds without CLOEXEC. A forked child (a [FILTER]
+     * converter, a user M-code script) must not inherit handles that can
+     * inject raw frames onto the fieldbus. */
+    (void)fcntl(xsk_socket__fd(xdp->xsk), F_SETFD, FD_CLOEXEC);
+    (void)fcntl(xsk_umem__fd(xdp->umem), F_SETFD, FD_CLOEXEC);
 
     /* Populate fill queue */
     ret = xsk_ring_prod__reserve(&xdp->fq, XDP_FQ_FILL_SIZE, &idx);
