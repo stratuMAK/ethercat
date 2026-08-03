@@ -28,7 +28,7 @@ AC_PREREQ([2.59])
 # - Check for complete Doxygen comments
 # - Update version number below
 #
-AC_INIT([ethercat], [1.6.8], [fp@igh.de])
+AC_INIT([ethercat], [2.0.0], [https://github.com/stratuMAK/ethercat/issues])
 AC_CONFIG_AUX_DIR([autoconf])
 AM_INIT_AUTOMAKE([-Wall -Wno-override -Werror dist-bzip2 subdir-objects foreign])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

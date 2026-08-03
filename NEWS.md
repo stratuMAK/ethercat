@@ -1,3 +1,51 @@
+# Version 2.0.0
+
+First release from https://github.com/stratuMAK/ethercat, branched from the
+IgH EtherCAT Master `stable-1.6` at 1.6.8. The major version reflects the
+architectural change below, not a coordinated upstream release; the
+unmodified upstream branch is kept as `stable-1.6` in this repository.
+
+- **Userspace master** (`./configure --enable-uspace-master`): the complete
+  master core runs inside the application process as `libethercat.so.2` —
+  no kernel module and no patched network drivers. Kernel mode is retained
+  and builds from the same sources through a new platform abstraction layer
+  (PAL), see `docs/design/pal.md`.
+  - Standalone `ec_master` daemon for tool-only operation.
+  - New API: `ecrt_lib_init()`, `ecrt_lib_cleanup()`,
+    `ecrt_lib_set_thread_scheduling()`, `ecrt_startup_master()` and the
+    transport constructors. `ECRT_VER_MAJOR`/`ECRT_VER_MINOR` stay at 1.6:
+    the inherited interface is unchanged and the additions are additive.
+  - The userspace library's soname is deliberately `.so.2`, distinct from
+    the kernel-mode client library's `.so.1` — the two are not ABI
+    compatible.
+- **Pluggable transports**: raw socket (AF_PACKET), AF_XDP (SKB and native,
+  copy mode), Beckhoff CCAT EIM via direct PCI BAR access, and a public ops
+  interface for custom transports.
+- **Realtime hardening**: lock-free, allocation-free and ioctl-free cyclic
+  path; priority-inheriting mutexes; library threads never inherit the
+  caller's realtime policy; lock-free fallback logging; NIC IRQ affinity
+  pinning; `ECRT_RT_ATTR` annotations verifiable with clang's
+  function-effects analysis (`script/rt-effects-check.sh`).
+- **Parallel Slave Configuration (PSC)**: slaves are configured
+  concurrently, see `docs/design/parallel-slave-config.md`.
+- **`ethercat` tool over IPC**: the tool reaches the userspace master
+  through a Unix domain socket (mode 0660, group configurable via
+  `ec_master --socket-group`) instead of a character device.
+- **Tests and CI**: `make check` runs a datagram-level bus simulator
+  against the real master core (scan, domains, CoE, PDO assignment,
+  link loss, DC, multi-slave/PSC, SDO information service, EoE, tool over
+  IPC, RT page faults). GitHub Actions covers gcc/clang × ±libxdp,
+  ASan/UBSan, ThreadSanitizer, the RT function-effects check, the
+  kernel-mode build and `make distcheck`.
+- Documentation reorganized: design and verification documents now live
+  under `docs/`, see `docs/README.md`.
+
+Fixes to the shared core made along the way — including an out-of-bounds
+write in `ecrt_startup_master()`, float type-punning UB in `lib/shared.c`, a
+receive-path ordering bug on `datagram->time_received`, and a tool-side
+buffer-pointer clobber in every `requestTrailingData()` user — are described
+in `docs/history/production-readiness-review-2026-07.md`.
+
 # Version 1.6.8
 
 - Fixed usage of `FAKE_EC_HOMEDIR` variable in fake library.

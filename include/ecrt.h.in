@@ -32,6 +32,28 @@
  * and to configure and activate the bus.
  *
  *
+ * Changes in version 2.0.0:
+ *
+ * - Added the userspace master API, available when the header was installed
+ *   from a --enable-uspace-master build (guarded by EC_USPACE_MASTER):
+ *   ecrt_lib_init(), ecrt_lib_cleanup(),
+ *   ecrt_lib_set_thread_scheduling(), ecrt_startup_master() and the
+ *   transport constructors ec_transport_create(),
+ *   ec_transport_create_by_name(), ec_transport_destroy(),
+ *   ec_transport_open(), ec_transport_close(), ec_transport_available(),
+ *   ec_transport_get_name(), ec_transport_find_by_name() and
+ *   ec_transport_print_available().
+ * - Added the ECRT_RT_ATTR / ECRT_RT_TRUSTED_BEGIN / ECRT_RT_TRUSTED_END
+ *   realtime annotations (include/ecrt_rt.h). They mark every function
+ *   that is safe to call from the cyclic path and are verifiable with
+ *   clang's function-effects analysis. They expand to nothing on other
+ *   compilers, so the ABI is unchanged.
+ * - ECRT_VER_MAJOR/ECRT_VER_MINOR deliberately stay at 1.6: the
+ *   interface inherited from upstream is unchanged and the additions
+ *   above are additive, so applications built against upstream 1.6
+ *   headers remain compatible. The package version and the userspace
+ *   library soname (libethercat.so.2) carry the 2.0 break instead.
+ *
  * Changes in version 1.6.0:
  *
  * - Added the ecrt_master_scan_progress() method, the
@@ -691,7 +713,7 @@ typedef void (*ec_log_cb_t)(int level, const char *fmt, va_list ap);
 /** Initialize the userspace master library. Must be called once before
  *  any other ecrt_* function.
  *
- *  Realtime requirements (see also RT-SYSTEM-TEST.md):
+ *  Realtime requirements (see also docs/testing/rt-system-test.md):
  *  - The library does NOT lock process memory; a realtime application
  *    must call mlockall(MCL_CURRENT | MCL_FUTURE) and prefault its
  *    stack itself (see examples/user). Note that the default 8 MiB

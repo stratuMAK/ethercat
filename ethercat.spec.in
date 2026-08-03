@@ -26,7 +26,7 @@ Version: @VERSION@
 Release: 1
 
 License: GPL
-URL: https://etherlab.org/ethercat
+URL: https://github.com/stratuMAK/ethercat
 
 Provides: @PACKAGE@
 Source: %{name}-%{version}.tar.bz2
