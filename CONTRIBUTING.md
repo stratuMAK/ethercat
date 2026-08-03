@@ -1,7 +1,19 @@
 <!-- omit in toc -->
-# Contributing to the IgH EtherCAT Master
+# Contributing
 
 First off, thanks for taking the time to contribute! ❤️
+
+> **Where to file.** This repository is a fork of the IgH EtherCAT Master
+> focused on the userspace port. Issues and pull requests for **this** tree
+> go to https://github.com/stratuMAK/ethercat/issues — not to the GitLab
+> tracker and not to the EtherLab mailing lists, whose maintainers do not
+> see them. The links to upstream issues, mailing lists and documentation
+> below remain useful for questions about the shared master core, about
+> kernel-mode operation, and about hardware support inherited from upstream.
+>
+> If your fix is in the shared core rather than in the userspace port,
+> consider sending it upstream as well; keeping such commits cherry-pickable
+> onto `stable-1.6` helps both trees.
 
 All types of contributions are encouraged and valued. See the
 [Table of Contents](#table-of-contents) for different ways to help and details
