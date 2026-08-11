@@ -61,6 +61,7 @@
 
 // prototypes for private methods
 void ec_canopen_abort_msg(const ec_slave_t *, uint32_t);
+void ec_canopen_abort_msg_warn(const ec_slave_t *, uint32_t);
 int ec_fsm_coe_check_emergency(const ec_fsm_coe_t *, const uint8_t *, size_t);
 int ec_fsm_coe_prepare_dict(ec_fsm_coe_t *, ec_datagram_t *);
 int ec_fsm_coe_dict_prepare_desc(ec_fsm_coe_t *, ec_datagram_t *);
@@ -150,8 +151,11 @@ const ec_code_msg_t sdo_abort_messages[] = {
 
 /** Outputs an SDO abort message.
  */
-void ec_canopen_abort_msg(
-        const ec_slave_t *slave, /**< Slave. */
+/** Look up the human-readable text for a CoE abort code.
+ *
+ * \return Message text, or NULL if the code is not in the table.
+ */
+static const char *ec_canopen_abort_text(
         uint32_t abort_code /**< Abort code to search for. */
         )
 {
@@ -159,13 +163,65 @@ void ec_canopen_abort_msg(
 
     for (abort_msg = sdo_abort_messages; abort_msg->code; abort_msg++) {
         if (abort_msg->code == abort_code) {
-            EC_SLAVE_ERR(slave, "SDO abort message 0x%08X: \"%s\".\n",
-                   abort_msg->code, abort_msg->message);
-            return;
+            return abort_msg->message;
         }
     }
 
-    EC_SLAVE_ERR(slave, "Unknown SDO abort code 0x%08X.\n", abort_code);
+    return NULL;
+}
+
+/****************************************************************************/
+
+/** Print a CoE abort code as an error.
+ *
+ * For aborts that mean a requested transfer failed.  Callers that only asked
+ * a slave to describe itself want ec_canopen_abort_msg_warn() instead.
+ *
+ * The severity cannot be a parameter: the kernel PAL defines EC_LOG_ERR as
+ * KERN_ERR, a string literal pasted into the printk() format at compile time,
+ * so it has to be fixed per call.  Hence two entry points over one shared
+ * lookup.
+ */
+void ec_canopen_abort_msg(
+        const ec_slave_t *slave, /**< Slave. */
+        uint32_t abort_code /**< Abort code to search for. */
+        )
+{
+    const char *msg = ec_canopen_abort_text(abort_code);
+
+    if (msg) {
+        EC_SLAVE_ERR(slave, "SDO abort message 0x%08X: \"%s\".\n",
+               abort_code, msg);
+    } else {
+        EC_SLAVE_ERR(slave, "Unknown SDO abort code 0x%08X.\n", abort_code);
+    }
+}
+
+/****************************************************************************/
+
+/** Print a CoE abort code as a warning.
+ *
+ * For aborts raised while reading a slave's object dictionary, where the
+ * slave is answering a question about itself rather than failing a transfer.
+ * A slave may legitimately refuse to describe an object it advertised -- OD
+ * lists have gaps, and some firmware lists indices it will not describe --
+ * and the dictionary is only ever used for introspection, so none of it can
+ * affect operation.  Logging these as errors puts them in front of the
+ * machine operator at every start-up.
+ */
+void ec_canopen_abort_msg_warn(
+        const ec_slave_t *slave, /**< Slave. */
+        uint32_t abort_code /**< Abort code to search for. */
+        )
+{
+    const char *msg = ec_canopen_abort_text(abort_code);
+
+    if (msg) {
+        EC_SLAVE_WARN(slave, "SDO abort message 0x%08X: \"%s\".\n",
+               abort_code, msg);
+    } else {
+        EC_SLAVE_WARN(slave, "Unknown SDO abort code 0x%08X.\n", abort_code);
+    }
 }
 
 /****************************************************************************/
@@ -562,13 +618,13 @@ void ec_fsm_coe_dict_response(
 
     if (EC_READ_U16(data) >> 12 == 0x8 && // SDO information
         (EC_READ_U8(data + 2) & 0x7F) == 0x07) { // error response
-        EC_SLAVE_ERR(slave, "SDO information error response!\n");
+        EC_SLAVE_WARN(slave, "SDO information error response!\n");
         if (rec_size < 10) {
-            EC_SLAVE_ERR(slave, "Incomplete SDO information"
+            EC_SLAVE_WARN(slave, "Incomplete SDO information"
                     " error response:\n");
             ec_print_data(data, rec_size);
         } else {
-            ec_canopen_abort_msg(slave, EC_READ_U32(data + 6));
+            ec_canopen_abort_msg_warn(slave, EC_READ_U32(data + 6));
         }
         fsm->state = ec_fsm_coe_error;
         return;
@@ -843,9 +899,9 @@ void ec_fsm_coe_dict_desc_response(
 
     if (EC_READ_U16(data) >> 12 == 0x8 && // SDO information
         (EC_READ_U8 (data + 2) & 0x7F) == 0x07) { // error response
-        EC_SLAVE_ERR(slave, "SDO information error response while"
+        EC_SLAVE_WARN(slave, "SDO information error response while"
                 " fetching SDO 0x%04X!\n", sdo->index);
-        ec_canopen_abort_msg(slave, EC_READ_U32(data + 6));
+        ec_canopen_abort_msg_warn(slave, EC_READ_U32(data + 6));
         fsm->state = ec_fsm_coe_error;
         return;
     }
@@ -1081,7 +1137,7 @@ void ec_fsm_coe_dict_entry_response(
         EC_SLAVE_WARN(slave, "SDO information error response while"
                " fetching SDO entry 0x%04X:%02X!\n",
                sdo->index, fsm->subindex);
-        ec_canopen_abort_msg(slave, EC_READ_U32(data + 6));
+        ec_canopen_abort_msg_warn(slave, EC_READ_U32(data + 6));
 
         /* There may be gaps in the subindices, so try to continue with next
          * subindex. */
