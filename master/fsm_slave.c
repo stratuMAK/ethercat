@@ -783,7 +783,12 @@ void ec_fsm_slave_state_dict_request(
     }
 
     if (!ec_fsm_coe_success(&fsm->fsm_coe)) {
-        EC_SLAVE_ERR(slave, "Failed to fetch SDO dictionary.\n");
+        /* Warning, not an error: the dictionary is only used to introspect a
+         * slave, never to operate it, so failing to read one has no effect on
+         * the bus.  Whatever caused the failure has already been logged at its
+         * own severity -- a mailbox timeout as an error, a slave declining to
+         * describe an object it advertised as a warning. */
+        EC_SLAVE_WARN(slave, "Failed to fetch SDO dictionary.\n");
         fsm->state = ec_fsm_slave_state_ready;
         return;
     }
