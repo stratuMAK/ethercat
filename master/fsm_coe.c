@@ -528,6 +528,43 @@ void ec_fsm_coe_dict_check(
 
 /****************************************************************************/
 
+/** Check for a pending slave state change and abort the dictionary fetch.
+ *
+ * Called at the exchange boundaries of the dictionary state machine (before
+ * requesting the next object description or entry, including the resend
+ * paths), where the previous response has been consumed and no request is
+ * outstanding — so the mailbox is not left mid-transfer.
+ *
+ * The dictionary is introspection-only and starts at the slave FSM's lowest
+ * priority, but once running it owns the slave's mailbox, and the master FSM
+ * defers all (re)configuration of the slave until it finishes ("Deferring
+ * configuration: slave FSM is busy").  For the large dictionary of a TwinSAFE
+ * logic terminal that is a fetch of minutes, and a state change requested
+ * meanwhile — most visibly the shutdown taking the bus to PREOP — would
+ * stall behind it for the whole time.  A pending state change wins instead;
+ * the slave FSM restarts the fetch once the slave has settled (see
+ * ec_fsm_slave_state_dict_request).
+ *
+ * \return Non-zero if the fetch was aborted.
+ */
+static int ec_fsm_coe_dict_yield_to_config(
+        ec_fsm_coe_t *fsm /**< Finite state machine. */
+        )
+{
+    ec_slave_t *slave = fsm->slave;
+
+    if (slave->requested_state == slave->current_state) {
+        return 0;
+    }
+
+    EC_SLAVE_DBG(slave, 1, "Aborting SDO dictionary fetch:"
+            " the slave has a state change pending.\n");
+    fsm->state = ec_fsm_coe_error;
+    return 1;
+}
+
+/****************************************************************************/
+
 /** Prepare an object description request.
  *
  * \return Zero on success, otherwise a negative error code.
@@ -538,7 +575,13 @@ int ec_fsm_coe_dict_prepare_desc(
         )
 {
     ec_slave_t *slave = fsm->slave;
-    uint8_t *data = ec_slave_mbox_prepare_send(slave, datagram, EC_MBOX_TYPE_COE,
+    uint8_t *data;
+
+    if (ec_fsm_coe_dict_yield_to_config(fsm)) {
+        return -EINTR;
+    }
+
+    data = ec_slave_mbox_prepare_send(slave, datagram, EC_MBOX_TYPE_COE,
 			8);
     if (IS_ERR(data)) {
         return PTR_ERR(data);
@@ -820,7 +863,13 @@ int ec_fsm_coe_dict_prepare_entry(
         )
 {
     ec_slave_t *slave = fsm->slave;
-    uint8_t *data = ec_slave_mbox_prepare_send(slave, datagram, EC_MBOX_TYPE_COE,
+    uint8_t *data;
+
+    if (ec_fsm_coe_dict_yield_to_config(fsm)) {
+        return -EINTR;
+    }
+
+    data = ec_slave_mbox_prepare_send(slave, datagram, EC_MBOX_TYPE_COE,
 			10);
     if (IS_ERR(data)) {
         return PTR_ERR(data);
