@@ -783,6 +783,17 @@ void ec_fsm_slave_state_dict_request(
     }
 
     if (!ec_fsm_coe_success(&fsm->fsm_coe)) {
+        if (slave->requested_state != slave->current_state) {
+            /* The fetch yielded to a pending state change (see
+             * ec_fsm_coe_dict_yield_to_config) — deliberate, not a failure.
+             * Clear the mark so the fetch restarts once the slave has
+             * settled in its new state. */
+            EC_SLAVE_DBG(slave, 1, "SDO dictionary fetch yielded to a"
+                    " state change; will retry.\n");
+            slave->sdo_dictionary_fetched = 0;
+            fsm->state = ec_fsm_slave_state_ready;
+            return;
+        }
         /* Warning, not an error: the dictionary is only used to introspect a
          * slave, never to operate it, so failing to read one has no effect on
          * the bus.  Whatever caused the failure has already been logged at its

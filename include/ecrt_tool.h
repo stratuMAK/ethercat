@@ -306,10 +306,14 @@ typedef struct {
     uint8_t *target; /**< Caller-provided buffer for domain data. */
 } ec_tool_domain_data_t;
 
+/** Slave position wildcard: request the state change for every slave on the
+ * bus in one call, under a single acquisition of the master lock. */
+#define EC_TOOL_SLAVE_POSITION_ALL 0xffff
+
 /** Slave state change request. */
 typedef struct {
     // inputs
-    uint16_t slave_position;
+    uint16_t slave_position; /**< Ring position, or EC_TOOL_SLAVE_POSITION_ALL. */
     uint8_t al_state;
 } ec_tool_slave_state_t;
 
@@ -627,6 +631,9 @@ EC_PUBLIC_API int ecrt_tool_set_debug(ec_master_t *master,
 EC_PUBLIC_API int ecrt_tool_rescan(ec_master_t *master);
 
 /** Request a slave state change.
+ * With \a data->slave_position set to EC_TOOL_SLAVE_POSITION_ALL the request
+ * is recorded for every slave on the bus atomically with respect to the
+ * master FSM (one lock hold).
  * \return 0 on success, negative errno on failure. */
 EC_PUBLIC_API int ecrt_tool_set_slave_state(ec_master_t *master,
         ec_tool_slave_state_t *data);

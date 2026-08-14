@@ -535,13 +535,19 @@ int ecrt_tool_set_slave_state(ec_master_t *master,
     if (ec_sem_down_interruptible(&master->master_sem))
         return -EINTR;
 
-    slave = ec_master_find_slave(master, 0, data->slave_position);
-    if (!slave) {
-        ec_sem_up(&master->master_sem);
-        return -EINVAL;
+    if (data->slave_position == EC_TOOL_SLAVE_POSITION_ALL) {
+        for (slave = master->slaves;
+                slave < master->slaves + master->slave_count; slave++) {
+            ec_slave_request_state(slave, data->al_state);
+        }
+    } else {
+        slave = ec_master_find_slave(master, 0, data->slave_position);
+        if (!slave) {
+            ec_sem_up(&master->master_sem);
+            return -EINVAL;
+        }
+        ec_slave_request_state(slave, data->al_state);
     }
-
-    ec_slave_request_state(slave, data->al_state);
 
     ec_sem_up(&master->master_sem);
     return 0;
