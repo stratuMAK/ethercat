@@ -79,6 +79,7 @@ noinst_HEADERS = \
 	CommandConfig.h \
 	CommandData.h \
 	CommandDebug.h \
+	CommandDiag.h \
 	CommandDomains.h \
 	CommandDownload.h \
 	CommandFoeRead.h \
