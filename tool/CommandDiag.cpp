@@ -382,13 +382,26 @@ void CommandDiag::execute(const StringVector &args)
         return;
     }
 
-    for (unsigned int i = 0; i < maxMessages; i++) {
-        unsigned int sub = DIAG_SUB_FIRST_MESSAGE + i;
+    /* The messages live in a ring buffer, so subindex order is only
+     * chronological until it first wraps. Walk it starting at the slot after
+     * the newest one, which is the oldest once wrapped and empty before that.
+     * Timestamps cannot be used to order these: they are the slave's local
+     * time since power-on and restart from zero across a power cycle. */
+    unsigned int count = maxMessages;
+    unsigned int start = 0;
+
+    if (DIAG_SUB_FIRST_MESSAGE + count - 1 > 0xff) {
+        count = 0x100 - DIAG_SUB_FIRST_MESSAGE;
+    }
+    if (newest >= DIAG_SUB_FIRST_MESSAGE
+            && newest < DIAG_SUB_FIRST_MESSAGE + count) {
+        start = newest - DIAG_SUB_FIRST_MESSAGE + 1;
+    }
+
+    for (unsigned int i = 0; i < count; i++) {
+        unsigned int sub = DIAG_SUB_FIRST_MESSAGE + (start + i) % count;
         Message msg;
 
-        if (sub > 0xff) {
-            break;
-        }
         if (!readMessage(m, slavePosition, (uint8_t) sub, msg)) {
             continue;
         }
