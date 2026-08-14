@@ -35,6 +35,7 @@ ethercat_SOURCES = \
 	CommandConfig.cpp \
 	CommandData.cpp \
 	CommandDebug.cpp \
+	CommandDiag.cpp \
 	CommandDomains.cpp \
 	CommandDownload.cpp \
 	CommandFoeRead.cpp \
