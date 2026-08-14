@@ -33,6 +33,7 @@ using namespace std;
 #include "CommandCStruct.h"
 #include "CommandData.h"
 #include "CommandDebug.h"
+#include "CommandDiag.h"
 #include "CommandDomains.h"
 #include "CommandDownload.h"
 #ifdef EC_EOE
@@ -299,6 +300,7 @@ int main(int argc, char **argv)
     commandList.push_back(new CommandCStruct());
     commandList.push_back(new CommandData());
     commandList.push_back(new CommandDebug());
+    commandList.push_back(new CommandDiag());
     commandList.push_back(new CommandDomains());
     commandList.push_back(new CommandDownload());
 #ifdef EC_EOE

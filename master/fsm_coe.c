@@ -358,10 +358,17 @@ int ec_fsm_coe_check_emergency(
         }
     }
 
-    EC_SLAVE_WARN(fsm->slave, "CoE Emergency Request received:\n"
-            "Error code 0x%04X, Error register 0x%02X, data:\n",
-            EC_READ_U16(data + 2), EC_READ_U8(data + 4));
-    ec_print_data(data + 5, 5);
+    /* The five manufacturer-specific bytes carry the payload that identifies
+     * the emergency - for TwinSAFE terminals, for instance, the diagnosis
+     * message text ID behind the generic 0xE000 code. Format them into the
+     * warning itself: ec_print_data() emits at debug level, so at the default
+     * log level the message used to end at a dangling "data:" with the only
+     * useful part dropped. */
+    EC_SLAVE_WARN(fsm->slave, "CoE Emergency Request received:"
+            " Error code 0x%04X, Error register 0x%02X,"
+            " data: %02X %02X %02X %02X %02X\n",
+            EC_READ_U16(data + 2), EC_READ_U8(data + 4),
+            data[5], data[6], data[7], data[8], data[9]);
     return 1;
 }
 
