@@ -46,6 +46,12 @@
 /** Number of state machine retries on datagram timeout. */
 #define EC_FSM_RETRIES 3
 
+/** Bus scans the master makes at startup before it accepts one that left
+ * slaves unscanned: a slave without its SII cannot be configured, and a
+ * reply that arrived too late in one scan usually arrives in time in the
+ * next. */
+#define EC_INITIAL_SCAN_ATTEMPTS 3
+
 /** Seconds to wait before fetching SDO dictionary
     after slave entered PREOP state. */
 #define EC_WAIT_SDO_DICT 3

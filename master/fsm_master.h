@@ -94,6 +94,8 @@ struct ec_fsm_master {
                                                          responding slaves for
                                                          every device. */
     ec_slave_t *slave; /**< current slave */
+    unsigned int scan_failures; /**< Slaves whose scan failed in this scan. */
+    char scan_failed[96]; /**< Their ring positions, for the log. */
     ec_sii_write_request_t *sii_request; /**< SII write request */
     off_t sii_index; /**< index to SII write request data */
     ec_sdo_request_t *sdo_request; /**< SDO request to process. */

@@ -259,30 +259,33 @@ ec_master_t *ecrt_startup_master(unsigned int index,
      * ecrt_master_slave_config(), slaves have been scanned and their SII
      * data (including default PDO mappings) is available.
      *
-     * Activity-based scan timeout: reset on every new slave discovered.
-     * This handles both empty buses (timeout after ~5s) and large buses
-     * (keeps waiting as long as slaves are being found). */
+     * Activity-based scan timeout: reset on every scan begun and every
+     * slave scanned.  This handles both empty buses (timeout after ~5s) and
+     * large or rescanned buses (keeps waiting while the scan progresses). */
     {
-        unsigned int prev_count = master->slave_count;
+        /* Progress is any scan begun or slave scanned: a repeated startup
+         * scan (EC_INITIAL_SCAN_ATTEMPTS) finds the same slaves again, so
+         * the slave count alone would read as a stall. */
+        unsigned int prev_progress = master->scan_progress;
         while (!master->initial_scan_done) {
             ec_wq_wait_timeout(master->scan_queue, master->initial_scan_done,
                     EC_SCAN_PROGRESS_TIMEOUT);
             if (master->initial_scan_done)
                 break;
-            if (master->slave_count == prev_count) {
+            if (master->scan_progress == prev_progress) {
                 /* No progress — bus empty or stalled */
                 EC_MASTER_WARN(master,
                         "Initial bus scan timed out after %u seconds"
-                        " with no new slaves. %u slave(s) found so far."
+                        " without progress. %u slave(s) found so far."
                         " Scan continues in background.\n",
                         EC_SCAN_PROGRESS_TIMEOUT, master->slave_count);
                 break;
             }
-            /* Progress was made (new slaves found), keep waiting */
+            /* Progress was made, keep waiting */
             EC_MASTER_DBG(master, 1,
                     "Scan progress: %u slave(s) found so far,"
                     " resetting timeout.\n", master->slave_count);
-            prev_count = master->slave_count;
+            prev_progress = master->scan_progress;
         }
     }
     EC_MASTER_DBG(master, 1, "Initial bus scan complete, %u slave(s) found.\n",

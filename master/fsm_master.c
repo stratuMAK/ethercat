@@ -549,6 +549,12 @@ void ec_fsm_master_state_broadcast(
             fsm->rescan_required = 0;
             fsm->idle = 0;
             fsm->scan_time = ec_current_time();
+            fsm->scan_failures = 0;
+            fsm->scan_failed[0] = '\0';
+            master->scan_progress++;
+            if (!master->initial_scan_done) {
+                master->initial_scan_attempts++;
+            }
 
 #ifdef EC_EOE
             ec_master_eoe_stop(master);
@@ -1080,6 +1086,16 @@ void ec_fsm_master_state_scan_slave(
         return;
     }
 
+    master->scan_progress++;
+    if (!ec_fsm_slave_scan_success(&fsm->fsm_slave_scan)) {
+        size_t used = strlen(fsm->scan_failed);
+        fsm->scan_failures++;
+        if (used + 8 < sizeof(fsm->scan_failed)) {
+            snprintf(fsm->scan_failed + used, sizeof(fsm->scan_failed) - used,
+                    "%s%u", used ? ", " : "", fsm->slave->ring_position);
+        }
+    }
+
 #ifdef EC_EOE
     if (slave->sii.mailbox_protocols & EC_MBOX_EOE) {
         // create EoE handler for this slave
@@ -1111,6 +1127,27 @@ void ec_fsm_master_state_scan_slave(
     EC_MASTER_INFO(master, "Bus scanning completed in %llu ms.\n",
             (unsigned long long) ec_time_to_ms(
                 ec_current_time() - fsm->scan_time));
+
+    // The startup scan left slaves without their SII: the application could
+    // not configure them.  Scan again, a bounded number of times, before
+    // reporting the initial scan as done.
+    if (fsm->scan_failures && !master->initial_scan_done) {
+        if (master->initial_scan_attempts < EC_INITIAL_SCAN_ATTEMPTS) {
+            EC_MASTER_WARN(master, "%u slave(s) not scanned (position %s),"
+                    " scanning the bus again (attempt %u of %u).\n",
+                    fsm->scan_failures, fsm->scan_failed,
+                    master->initial_scan_attempts + 1,
+                    EC_INITIAL_SCAN_ATTEMPTS);
+            master->scan_busy = 0;
+            fsm->rescan_required = 1;
+            ec_fsm_master_restart(fsm);
+            return;
+        }
+        EC_MASTER_ERR(master, "Bus scan incomplete after %u attempts:"
+                " %u slave(s) not scanned (position %s).\n",
+                master->initial_scan_attempts, fsm->scan_failures,
+                fsm->scan_failed);
+    }
 
     master->scan_busy = 0;
     master->scan_index = master->slave_count;

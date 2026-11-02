@@ -93,6 +93,9 @@ typedef struct {
     unsigned long od_downloads; /**< Number of SDO download requests. */
     uint8_t eoe_frame[1600]; /**< EoE frame reassembly buffer. */
     size_t eoe_len; /**< Bytes assembled so far. */
+    unsigned int sii_lost_scans; /**< Lose the replies to SII accesses during
+                                   the first this many bus scans (see
+                                   sim_bus_lose_sii). */
 } sim_slave_t;
 
 struct sim_bus {
@@ -109,6 +112,9 @@ struct sim_bus {
     unsigned long al_status_brds; /**< BRDs of the AL status register
                                     (see sim_bus_al_status_brd_count). */
     int irq_cpu;              /**< Last set_cpu_affinity CPU, -1 if never. */
+    unsigned int scans;       /**< Bus scans begun: broadcast writes of the
+                                station address register (0x0010). */
+    int drop_frame;           /**< The frame being processed is lost. */
     long irq_pin_frames;      /**< frame_count at that call, -1 if never. */
     pthread_mutex_t lock;
 
@@ -882,6 +888,10 @@ static void sim_bus_process_datagram(sim_bus_t *bus, uint8_t cmd,
                     if (sim_rd16(bus->slaves[i].regs + 0x0010) == station) {
                         wkc = (uint16_t) (wkc + sim_slave_process(
                                 &bus->slaves[i], cmd, offset, data, len));
+                        if (offset >= 0x0500 && offset < 0x0510
+                                && bus->scans <= bus->slaves[i].sii_lost_scans) {
+                            bus->drop_frame = 1;
+                        }
                     }
                 }
             }
@@ -892,6 +902,9 @@ static void sim_bus_process_datagram(sim_bus_t *bus, uint8_t cmd,
                 int16_t pos = (int16_t) sim_rd16(addr);
                 if (cmd == 0x07 && offset == 0x0130) {
                     bus->al_status_brds++;
+                }
+                if (cmd == 0x08 && offset == 0x0010) {
+                    bus->scans++; /* a scan begins: station addresses cleared */
                 }
                 for (i = 0; i < bus->nslaves; i++) {
                     wkc = (uint16_t) (wkc + sim_slave_process(
@@ -1268,8 +1281,10 @@ static int sim_send(ec_transport_t *transport, size_t size)
     }
 
     bus->frame_count++;
+    bus->drop_frame = 0;
 
-    if (sim_bus_process_frame(bus, transport->tx_buffer, size) == 0) {
+    if (sim_bus_process_frame(bus, transport->tx_buffer, size) == 0
+            && !bus->drop_frame) {
         unsigned int s;
         /* Loopback slaves: echo the output process data the master just
          * wrote (SM2) into the input process data (SM3), so it reappears on
@@ -1539,6 +1554,25 @@ unsigned long sim_bus_frame_count(sim_bus_t *bus)
 
     pthread_mutex_lock(&bus->lock);
     n = bus->frame_count;
+    pthread_mutex_unlock(&bus->lock);
+    return n;
+}
+
+void sim_bus_lose_sii(sim_bus_t *bus, unsigned int pos, unsigned int scans)
+{
+    pthread_mutex_lock(&bus->lock);
+    if (pos < bus->nslaves) {
+        bus->slaves[pos].sii_lost_scans = scans;
+    }
+    pthread_mutex_unlock(&bus->lock);
+}
+
+unsigned int sim_bus_scan_count(sim_bus_t *bus)
+{
+    unsigned int n;
+
+    pthread_mutex_lock(&bus->lock);
+    n = bus->scans;
     pthread_mutex_unlock(&bus->lock);
     return n;
 }

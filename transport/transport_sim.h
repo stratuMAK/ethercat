@@ -92,6 +92,17 @@ uint8_t *sim_bus_slave_regs(sim_bus_t *bus, unsigned int pos);
 /** Number of frames processed by the bus so far. */
 unsigned long sim_bus_frame_count(sim_bus_t *bus);
 
+/** Lose every frame that accesses slave \a pos's SII (registers 0x0500 to
+ * 0x050F) during the first \a scans bus scans -- a scan begins with the
+ * broadcast write of the station addresses.  The slave still sees the
+ * access; only the reply never comes back, which is what a reply delivered
+ * after the datagram timeout looks like to the master.  Set it before the
+ * master starts. */
+void sim_bus_lose_sii(sim_bus_t *bus, unsigned int pos, unsigned int scans);
+
+/** Bus scans the master has begun so far (see sim_bus_lose_sii). */
+unsigned int sim_bus_scan_count(sim_bus_t *bus);
+
 /** CPU the master last asked the transport to pin its IRQs to, -1 if it
  * never did. */
 int sim_bus_irq_cpu(sim_bus_t *bus);

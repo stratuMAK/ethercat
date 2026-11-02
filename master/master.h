@@ -232,6 +232,12 @@ struct ec_master {
     EC_PAL_SHARED unsigned int initial_scan_done; /**< Nonzero after the first bus scan
                                          attempt has completed (either slaves
                                          found and scanned, or no slaves). */
+    EC_PAL_SHARED unsigned int scan_progress; /**< Counts every scan begun
+                                        and every slave scanned, across
+                                        rescans: what the startup wait
+                                        watches for progress. */
+    unsigned int initial_scan_attempts; /**< Startup scans begun (see
+                                          EC_INITIAL_SCAN_ATTEMPTS). */
 
     EC_PAL_SHARED unsigned int config_busy; /**< State of slave configuration. */
     ec_semaphore_t config_sem; /**< Semaphore protecting the \a config_busy

@@ -171,6 +171,8 @@ int ec_master_init(ec_master_t *master, /**< EtherCAT master */
     master->scan_index = 0;
     master->allow_scan = 1;
     master->initial_scan_done = 0;
+    master->scan_progress = 0;
+    master->initial_scan_attempts = 0;
     ec_sem_init(&master->scan_sem, 1);
     ec_wq_init(&master->scan_queue);
 
