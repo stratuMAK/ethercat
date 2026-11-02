@@ -8,6 +8,14 @@
 #    rt-effects    ECRT_RT_ATTR contract via clang function-effects
 #    build-kernel  kernel modules against the distro's kernel headers
 #    dist          make distcheck (tarball completeness, VPATH build)
+#
+#  Runner image: pushes and pull requests run on a pinned image
+#  (ubuntu-24.04), so a change is judged against the toolchain and kernel
+#  headers it was written for -- not against whatever ubuntu-latest moved to
+#  meanwhile (Linux 7.0 headers and a newer TSan turned up on unrelated PRs
+#  in 2026-11).  The weekly schedule runs the same jobs on ubuntu-latest,
+#  so that drift shows up there, as its own failure, to be fixed (and the
+#  pin moved) deliberately.
 #-----------------------------------------------------------------------------
 
 name: CI
@@ -15,10 +23,13 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '0 3 * * 1'   # Mondays 03:00 UTC, on ubuntu-latest
+  workflow_dispatch:
 
 jobs:
   build-uspace:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -79,7 +90,7 @@ jobs:
           if-no-files-found: ignore
 
   sanitize:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     name: unit tests (ASan+UBSan)
     steps:
@@ -111,7 +122,7 @@ jobs:
           if-no-files-found: ignore
 
   tsan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     name: unit tests (ThreadSanitizer)
     steps:
@@ -142,7 +153,7 @@ jobs:
           if-no-files-found: ignore
 
   rt-effects:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     name: RT function-effects check
     steps:
@@ -165,7 +176,7 @@ jobs:
         run: script/rt-effects-check.sh
 
   build-kernel:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     name: kernel modules (distro headers)
     steps:
@@ -187,7 +198,7 @@ jobs:
         run: make -j"$(nproc)" modules
 
   dist:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     name: distcheck
     steps:
