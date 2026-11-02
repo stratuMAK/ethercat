@@ -100,6 +100,10 @@ unsigned long sim_bus_frame_count(sim_bus_t *bus);
  * master starts. */
 void sim_bus_lose_sii(sim_bus_t *bus, unsigned int pos, unsigned int scans);
 
+/** Deliver every reply \a us microseconds after its frame was sent (0: at
+ * once), as a NIC whose interrupts are handled on a busy CPU does. */
+void sim_bus_set_reply_delay(sim_bus_t *bus, unsigned int us);
+
 /** Bus scans the master has begun so far (see sim_bus_lose_sii). */
 unsigned int sim_bus_scan_count(sim_bus_t *bus);
 

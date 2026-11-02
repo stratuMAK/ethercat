@@ -37,6 +37,13 @@
 /** Datagram timeout in microseconds. */
 #define EC_IO_TIMEOUT 500
 
+/** Datagram timeout in microseconds before activation (idle phase: bus
+ * scan, slave configuration).  Nothing there is time-critical, and its
+ * replies may be handled on a CPU shared with the rest of the system -- on
+ * a coating machine they took 0.5-1.8 ms, and the scan failed with
+ * EC_IO_TIMEOUT. */
+#define EC_IDLE_IO_TIMEOUT 2000
+
 /** Time to send a byte in nanoseconds.
  *
  * t_ns = 1 / (100 MBit/s / 8 bit/byte) = 80 ns/byte

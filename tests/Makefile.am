@@ -52,6 +52,7 @@ check_PROGRAMS = \
 	test_sim_pdo_assign \
 	test_sim_scan \
 	test_sim_scan_retry \
+	test_sim_scan_slow_replies \
 	test_sim_scan_stale_mbox \
 	test_sim_sdo_info \
 	test_sim_transport_file \
@@ -86,6 +87,7 @@ test_sim_multi_SOURCES = test_sim_multi.c test.h
 test_sim_pdo_assign_SOURCES = test_sim_pdo_assign.c test.h
 test_sim_scan_SOURCES = test_sim_scan.c test.h
 test_sim_scan_retry_SOURCES = test_sim_scan_retry.c test.h
+test_sim_scan_slow_replies_SOURCES = test_sim_scan_slow_replies.c test.h
 test_sim_scan_stale_mbox_SOURCES = test_sim_scan_stale_mbox.c test.h
 test_sim_sdo_info_SOURCES = test_sim_sdo_info.c test.h
 test_sim_transport_file_SOURCES = test_sim_transport_file.c test.h

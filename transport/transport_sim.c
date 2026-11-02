@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "transport_sim.h"
 
@@ -121,12 +122,26 @@ struct sim_bus {
     struct {
         uint8_t data[EC_TRANSPORT_MAX_FRAME_SIZE];
         size_t len;
+        uint64_t due_ns; /**< CLOCK_MONOTONIC time it may be received. */
     } rxq[SIM_RXQ_LEN];
+    uint64_t reply_delay_ns; /**< See sim_bus_set_reply_delay(). */
     unsigned int rxq_head; /**< Next slot to fill. */
     unsigned int rxq_tail; /**< Next slot to drain. */
 };
 
 /****************************************************************************/
+
+/* TRUSTED: clock_gettime(CLOCK_MONOTONIC) is a nonblocking vDSO call. */
+static uint64_t sim_now_ns(void) ECRT_RT_ATTR;
+ECRT_RT_TRUSTED_BEGIN
+static uint64_t sim_now_ns(void)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * 1000000000ULL + (uint64_t) ts.tv_nsec;
+}
+ECRT_RT_TRUSTED_END
 
 static uint16_t sim_rd16(const uint8_t *p)
 {
@@ -1305,6 +1320,7 @@ static int sim_send(ec_transport_t *transport, size_t size)
         }
         memcpy(bus->rxq[bus->rxq_head].data, transport->tx_buffer, size);
         bus->rxq[bus->rxq_head].len = size;
+        bus->rxq[bus->rxq_head].due_ns = sim_now_ns() + bus->reply_delay_ns;
         bus->rxq_head = next;
     }
 
@@ -1323,7 +1339,9 @@ static int sim_receive(ec_transport_t *transport, uint8_t *buffer,
     size_t len = 0;
 
     pthread_mutex_lock(&bus->lock);
-    if (bus->rxq_tail != bus->rxq_head) {
+    if (bus->rxq_tail != bus->rxq_head
+            && (!bus->reply_delay_ns
+                || sim_now_ns() >= bus->rxq[bus->rxq_tail].due_ns)) {
         len = bus->rxq[bus->rxq_tail].len;
         if (len <= max_size) {
             memcpy(buffer, bus->rxq[bus->rxq_tail].data, len);
@@ -1564,6 +1582,13 @@ void sim_bus_lose_sii(sim_bus_t *bus, unsigned int pos, unsigned int scans)
     if (pos < bus->nslaves) {
         bus->slaves[pos].sii_lost_scans = scans;
     }
+    pthread_mutex_unlock(&bus->lock);
+}
+
+void sim_bus_set_reply_delay(sim_bus_t *bus, unsigned int us)
+{
+    pthread_mutex_lock(&bus->lock);
+    bus->reply_delay_ns = (uint64_t) us * 1000ULL;
     pthread_mutex_unlock(&bus->lock);
 }
 

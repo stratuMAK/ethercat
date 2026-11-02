@@ -65,6 +65,7 @@ tests/test_pdo_print
 tests/test_shared
 tests/test_sim_scan
 tests/test_sim_scan_retry
+tests/test_sim_scan_slow_replies
 tests/test_sim_scan_stale_mbox
 tests/test_sim_domain
 tests/test_sim_coe
