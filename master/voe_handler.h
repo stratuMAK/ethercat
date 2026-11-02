@@ -50,7 +50,7 @@ struct ec_voe_handler {
                           the slave, EC_DIR_INPUT means reading from the
                           slave. */
     void (*state)(ec_voe_handler_t *); /**< State function */
-    ec_internal_request_state_t request_state; /**< Handler state. */
+    EC_PAL_SHARED ec_internal_request_state_t request_state; /**< Handler state. */
     unsigned int retries; /**< retries upon datagram timeout */
     ec_time_t time_start; /**< Timestamp for timeout calculation. */
 };

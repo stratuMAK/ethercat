@@ -48,7 +48,7 @@ typedef struct {
     uint16_t offset; /**< SII word offset. */
     size_t nwords; /**< Number of words. */
     const uint16_t *words; /**< Pointer to the data words. */
-    ec_internal_request_state_t state; /**< State of the request. */
+    EC_PAL_SHARED ec_internal_request_state_t state; /**< State of the request. */
 } ec_sii_write_request_t;
 
 /****************************************************************************/

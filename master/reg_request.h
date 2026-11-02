@@ -46,7 +46,7 @@ struct ec_reg_request {
                           slave, EC_DIR_INPUT means reading from the slave. */
     uint16_t address; /**< Register address. */
     size_t transfer_size; /**< Size of the data to transfer. */
-    ec_internal_request_state_t state; /**< Request state. */
+    EC_PAL_SHARED ec_internal_request_state_t state; /**< Request state. */
     uint16_t ring_position; /**< Ring position for emergency requests. */
 };
 

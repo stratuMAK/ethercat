@@ -53,7 +53,7 @@ typedef struct {
     ec_direction_t dir; /**< Direction. EC_DIR_OUTPUT means downloading to
                           the slave, EC_DIR_INPUT means uploading from the
                           slave. */
-    ec_internal_request_state_t state; /**< FoE request state. */
+    EC_PAL_SHARED ec_internal_request_state_t state; /**< FoE request state. */
     ec_time_t time_start; /**< Time, when the request was issued. */
     ec_time_t time_sent; /**< Time, when the upload/download
                                      request was sent. */

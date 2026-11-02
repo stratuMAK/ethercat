@@ -234,7 +234,10 @@ int ec_gen_device_create_socket(
     sa.sll_family = AF_PACKET;
     sa.sll_protocol = htons(ETH_P_ETHERCAT);
     sa.sll_ifindex = desc->ifindex;
-    ret = kernel_bind(dev->socket, (struct sockaddr *) &sa, sizeof(sa));
+    /* Through void *: the address parameter is struct sockaddr * up to
+     * Linux 6.x and struct sockaddr_unsized * from 7.0 on; a void pointer
+     * converts to either without a version check. */
+    ret = kernel_bind(dev->socket, (void *) &sa, sizeof(sa));
     if (ret) {
         printk(KERN_ERR PFX "Failed to bind() socket to interface"
                 " (ret = %i).\n", ret);
