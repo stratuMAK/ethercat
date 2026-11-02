@@ -121,7 +121,7 @@ int main(void)
     TEST_CHECK_EQ(0, ecrt_lib_init(NULL, NULL));
 
     /* Startup blocks until the initial scan completes. */
-    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1);
+    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1, -1);
     TEST_CHECK(master != NULL);
     if (!master) {
         goto out_cleanup;

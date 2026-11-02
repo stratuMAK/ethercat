@@ -160,7 +160,7 @@ int main(void)
     TEST_CHECK_EQ(0, sim_bus_od_set(bus, 0, 0x1A00, 0, &zero, 1));
 
     TEST_CHECK_EQ(0, ecrt_lib_init(NULL, NULL));
-    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1);
+    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1, -1);
     TEST_CHECK(master != NULL);
     if (!master) {
         goto out_cleanup;

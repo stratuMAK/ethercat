@@ -132,7 +132,7 @@ int main(void)
     TEST_CHECK_EQ(0, pthread_create(&tid, NULL, link_up_later, bus));
 
     start = now_ms();
-    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1);
+    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1, -1);
     end = now_ms();
     TEST_CHECK(master != NULL);
     pthread_join(tid, NULL);

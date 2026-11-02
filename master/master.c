@@ -1473,7 +1473,6 @@ static int ec_master_operation_thread(void *priv_data)
 
         ec_master_operation_thread_schedule(master);
 
-        ec_pal_check_irq_affinity(master);
         ec_pal_check_link_states(master);
     }
 
@@ -2312,8 +2311,6 @@ int ecrt_master_receive(ec_master_t *master)
 {
     unsigned int dev_idx;
     ec_datagram_t *datagram, *next;
-
-    ec_pal_record_rt_cpu(master);
 
     // receive datagrams
     for (dev_idx = EC_DEVICE_MAIN; dev_idx < ec_master_num_devices(master);

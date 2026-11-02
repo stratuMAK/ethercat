@@ -92,6 +92,14 @@ uint8_t *sim_bus_slave_regs(sim_bus_t *bus, unsigned int pos);
 /** Number of frames processed by the bus so far. */
 unsigned long sim_bus_frame_count(sim_bus_t *bus);
 
+/** CPU the master last asked the transport to pin its IRQs to, -1 if it
+ * never did. */
+int sim_bus_irq_cpu(sim_bus_t *bus);
+
+/** Frames the bus had processed when that request came, -1 if it never
+ * came: 0 means the IRQs were pinned before the first frame of the scan. */
+long sim_bus_irq_pin_frames(sim_bus_t *bus);
+
 /** Number of broadcast reads of the AL status register (0x0130) the
  * master has issued so far — the master FSM's bus-state poll.  Lets
  * tests assert that bus-state monitoring keeps running while a long

@@ -46,7 +46,7 @@ int main(void)
 
     /* Startup blocks until the initial scan completes (or its watchdog
      * expires) — a NULL result means the scan never finished. */
-    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1);
+    master = ecrt_startup_master(0, sim_bus_transport(bus), NULL, 0, -1, -1);
     TEST_CHECK(master != NULL);
 
     if (master) {

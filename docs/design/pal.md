@@ -38,7 +38,7 @@ concept has the same file name on both sides.
 | `pal_alloc.h` | `ec_alloc/zalloc/free/valloc/vfree/alloc_atomic`, `ec_rt_alloc(_aligned)/rt_zalloc/rt_free`, `ec_rt_lock_mem/unlock_mem` | `kmalloc`/`vmalloc` | `malloc`/`posix_memalign` + `mlock` |
 | `pal_misc.h` | `ec_log`, `ec_log_ratelimit`, `ec_log_set_callback`, `ec_pal_log_start/stop` | `printk` | application callback, or log ring + drainer thread |
 | `pal_eoe.h` | `ec_eoe_netdev_*`, `ec_eoe_buf_*` | `net_device` / `sk_buff` | TAP device / pooled frame buffers |
-| `pal_affinity.h` | `ec_pal_record_rt_cpu`, `ec_pal_check_irq_affinity`, `ec_pal_check_link_states`, `ec_transport_set_cpu_affinity` | mostly no-ops (the NIC driver owns this) | `sched_getcpu`, IRQ affinity check, transport link poll |
+| `pal_affinity.h` | `ec_pal_check_link_states` | no-op (the NIC driver owns this) | transport link poll (the NIC IRQs are pinned once in `ecrt_startup_master()`, `irq_cpu`) |
 | `pal_list.h` (uspace only) | kernel-style intrusive list | `<linux/list.h>` | vendored copy — a data structure, not a platform API |
 
 The device layer follows the same split: `ec_device_pal_t` holds the

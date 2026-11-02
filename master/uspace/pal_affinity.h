@@ -21,7 +21,8 @@
 
 /**
    \file
-   PAL: IRQ affinity helpers for userspace master.
+   PAL: device link-state helper for the userspace master.  (The NIC
+   IRQs are pinned once at startup, see ecrt_startup_master().)
    Included after ec_master struct and macros are defined.
 */
 
@@ -30,45 +31,11 @@
 
 #include "ectp.h"
 
-/** Record RT caller's CPU for IRQ affinity tracking.
- *  Guarded by master->active (set only after ecrt_master_activate). */
-/* TRUSTED: sched_getcpu() is a nonblocking vDSO call; the
- * function-effects analysis cannot see that. */
-static inline void ec_pal_record_rt_cpu(ec_master_t *master) EC_RT_ATTR;
-EC_RT_TRUSTED_BEGIN
-static inline void ec_pal_record_rt_cpu(ec_master_t *master)
-{
-    if (!master->active)
-        return;
-    atomic_store_explicit(&master->pal.rt_cpu, sched_getcpu(),
-                          memory_order_relaxed);
-}
-EC_RT_TRUSTED_END
-
 /** Periodically refresh the devices' link state from the transports
  * (1 Hz, implemented in device_uspace.c). Runs in the master threads:
  * the transport link query is a syscall (e.g. ioctl(SIOCGIFFLAGS) on
  * the raw transport) and must not run in the application's cyclic
  * receive path. */
 void ec_pal_check_link_states(ec_master_t *master);
-
-/** Check if RT CPU changed and re-pin transport IRQs accordingly. */
-static inline void ec_pal_check_irq_affinity(ec_master_t *master)
-{
-    int rt_cpu = atomic_load_explicit(&master->pal.rt_cpu,
-                                      memory_order_relaxed);
-    if (rt_cpu >= 0 && rt_cpu != master->pal.affinity_cpu) {
-        int ret = ec_transport_set_cpu_affinity(master->pal.transport,
-                                                rt_cpu);
-        if (ret > 0) {
-            EC_MASTER_INFO(master,
-                "Pinned %d transport IRQ(s) to CPU %d\n", ret, rt_cpu);
-        } else {
-            EC_MASTER_WARN(master,
-                "Failed to pin transport IRQs to CPU %d\n", rt_cpu);
-        }
-        master->pal.affinity_cpu = rt_cpu;
-    }
-}
 
 #endif /* __EC_USPACE_PAL_AFFINITY_H__ */

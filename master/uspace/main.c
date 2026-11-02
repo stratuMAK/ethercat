@@ -53,6 +53,7 @@ struct master_config {
     const char *backup;                 /**< Backup interface name (NULL = none). */
     ec_transport_type_t transport;      /**< Transport type. */
     int cpu;                            /**< CPU affinity (-1 = no binding). */
+    int irq_cpu;                        /**< CPU for the NIC IRQs (-1 = leave them). */
 };
 
 /****************************************************************************/
@@ -189,6 +190,7 @@ int main(int argc, char *argv[])
         .backup = NULL,
         .transport = EC_TRANSPORT_RAW,
         .cpu = -1,
+        .irq_cpu = -1,
     };
 
     static struct option long_options[] = {
@@ -196,6 +198,7 @@ int main(int argc, char *argv[])
         {"transport",  required_argument, 0, 't'},
         {"backup",     required_argument, 0, 'b'},
         {"cpu",        required_argument, 0, 'c'},
+        {"irq-cpu",    required_argument, 0, 'q'},
         {"debug",      required_argument, 0, 'd'},
         {"socket",       required_argument, 0, 's'},
         {"socket-group", required_argument, 0, 'g'},
@@ -205,7 +208,7 @@ int main(int argc, char *argv[])
         {0, 0, 0, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "i:t:b:c:d:s:g:flh",
+    while ((c = getopt_long(argc, argv, "i:t:b:c:q:d:s:g:flh",
                     long_options, NULL)) != -1) {
         switch (c) {
             case 'i':
@@ -224,6 +227,7 @@ int main(int argc, char *argv[])
                 cur.backup = NULL;
                 cur.transport = EC_TRANSPORT_RAW;
                 cur.cpu = -1;
+                cur.irq_cpu = -1;
                 current_has_interface = 1;
                 break;
             case 't':
@@ -259,6 +263,14 @@ int main(int argc, char *argv[])
                 }
                 cur.cpu = (int)strtol(optarg, NULL, 0);
                 break;
+            case 'q':
+                if (!current_has_interface) {
+                    fprintf(stderr,
+                            "Error: -q requires a preceding -i\n");
+                    return 1;
+                }
+                cur.irq_cpu = (int)strtol(optarg, NULL, 0);
+                break;
             case 'd':
                 g_debug_level = (unsigned int)strtoul(optarg, NULL, 0);
                 break;
@@ -289,6 +301,11 @@ int main(int argc, char *argv[])
                 fprintf(stdout,
                         "  -c, --cpu <id>            Bind master threads"
                         " to CPU\n");
+                fprintf(stdout,
+                        "  -q, --irq-cpu <id>        Pin the NIC IRQs to CPU"
+                        " before the first bus scan\n"
+                        "                            (the CPU of the"
+                        " application's cyclic thread)\n");
                 fprintf(stdout, "\nGlobal options:\n");
                 fprintf(stdout,
                         "  -d, --debug <level>       Set debug level"
@@ -455,7 +472,8 @@ int main(int argc, char *argv[])
                 transports[i],
                 backup_transports[i],
                 g_debug_level,
-                configs[i].cpu);
+                configs[i].cpu,
+                configs[i].irq_cpu);
         if (!masters[i]) {
             main_log(EC_LOG_ERR, "Failed to start EtherCAT master %d\n", i);
             if (backup_transports[i]) {

@@ -46,9 +46,12 @@ of this file.
       rates in `/proc/interrupts` — the RT CPU must show at least
       cycle-rate local timer interrupts; a deficit there with a matching
       surplus on a housekeeping CPU means the wakeup timers migrated.)
-- [ ] The master pins all of the NIC's IRQ vectors to the RT CPU
-      automatically (transport `irq_pin`; log line "Pinned N transport
-      IRQ(s) to CPU x"). Verify with `cat /proc/interrupts` during the
+- [ ] The master pins all of the NIC's IRQ vectors to the CPU the
+      application passes as `irq_cpu` to `ecrt_startup_master()` (the RT
+      CPU), once, before the first bus scan (transport `irq_pin`; log
+      line "Pinned N transport IRQ(s) of <iface> to CPU x"). Without it
+      the scan's replies are delivered on a housekeeping CPU and can
+      miss the datagram timeout under load. Verify with `cat /proc/interrupts` during the
       run that the **queue-0 traffic vector** (`<iface>-TxRx-0`)
       accumulates on the RT CPU — that vector is the one that matters,
       and on igb it is NOT the lowest-numbered one (the lowest is the

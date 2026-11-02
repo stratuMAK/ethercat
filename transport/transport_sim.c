@@ -108,6 +108,8 @@ struct sim_bus {
     unsigned long frame_count;
     unsigned long al_status_brds; /**< BRDs of the AL status register
                                     (see sim_bus_al_status_brd_count). */
+    int irq_cpu;              /**< Last set_cpu_affinity CPU, -1 if never. */
+    long irq_pin_frames;      /**< frame_count at that call, -1 if never. */
     pthread_mutex_t lock;
 
     struct {
@@ -1381,6 +1383,20 @@ static int sim_get_fd(ec_transport_t *transport)
     return -1;
 }
 
+/* No IRQs to move: records the request (and how far the bus traffic had
+ * got by then) for sim_bus_irq_cpu() / sim_bus_irq_pin_frames(), and
+ * reports one IRQ pinned as a NIC with a single vector would. */
+static int sim_set_cpu_affinity(ec_transport_t *transport, int cpu)
+{
+    sim_bus_t *bus = transport->priv;
+
+    pthread_mutex_lock(&bus->lock);
+    bus->irq_cpu = cpu;
+    bus->irq_pin_frames = (long) bus->frame_count;
+    pthread_mutex_unlock(&bus->lock);
+    return 1;
+}
+
 const ec_transport_ops_t ec_transport_sim_ops = {
     .name = "sim",
     .open = sim_open,
@@ -1391,7 +1407,7 @@ const ec_transport_ops_t ec_transport_sim_ops = {
     .get_link_state = sim_get_link_state,
     .get_mac = sim_get_mac,
     .get_fd = sim_get_fd,
-    .set_cpu_affinity = NULL,
+    .set_cpu_affinity = sim_set_cpu_affinity,
 };
 
 /****************************************************************************/
@@ -1415,6 +1431,8 @@ sim_bus_t *sim_bus_create(unsigned int nslaves,
 
     bus->nslaves = nslaves;
     bus->link_up = 1;
+    bus->irq_cpu = -1;
+    bus->irq_pin_frames = -1;
     pthread_mutex_init(&bus->lock, NULL);
 
     for (i = 0; i < nslaves; i++) {
@@ -1521,6 +1539,26 @@ unsigned long sim_bus_frame_count(sim_bus_t *bus)
 
     pthread_mutex_lock(&bus->lock);
     n = bus->frame_count;
+    pthread_mutex_unlock(&bus->lock);
+    return n;
+}
+
+int sim_bus_irq_cpu(sim_bus_t *bus)
+{
+    int cpu;
+
+    pthread_mutex_lock(&bus->lock);
+    cpu = bus->irq_cpu;
+    pthread_mutex_unlock(&bus->lock);
+    return cpu;
+}
+
+long sim_bus_irq_pin_frames(sim_bus_t *bus)
+{
+    long n;
+
+    pthread_mutex_lock(&bus->lock);
+    n = bus->irq_pin_frames;
     pthread_mutex_unlock(&bus->lock);
     return n;
 }

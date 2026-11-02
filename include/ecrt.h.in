@@ -43,6 +43,9 @@
  *   ec_transport_open(), ec_transport_close(), ec_transport_available(),
  *   ec_transport_get_name(), ec_transport_find_by_name() and
  *   ec_transport_print_available().
+ * - ecrt_startup_master() takes the CPU for the NIC IRQs (irq_cpu) and pins
+ *   them before the first bus scan.  The library no longer moves them to
+ *   whichever CPU the cyclic thread first runs on.
  * - Added the ECRT_RT_ATTR / ECRT_RT_TRUSTED_BEGIN / ECRT_RT_TRUSTED_END
  *   realtime annotations (include/ecrt_rt.h). They mark every function
  *   that is safe to call from the cyclic path and are verifiable with
@@ -776,13 +779,20 @@ EC_PUBLIC_API int ecrt_lib_set_thread_scheduling(int policy, int priority);
  *         opened), or NULL.
  *  \param debug_level Debug verbosity level.
  *  \param run_on_cpu CPU affinity for master threads, or -1 for no binding.
+ *  \param irq_cpu CPU to pin the transports' NIC IRQs to, or -1 to leave
+ *         them where the system put them.  Pinned once, as soon as the
+ *         transports are open and before the first bus scan, so the scan's
+ *         replies are already delivered on that CPU: pass the CPU of the
+ *         application's cyclic thread.  The library does not move them
+ *         afterwards.
  *  \return Pointer to master, or NULL on error. */
 EC_PUBLIC_API ec_master_t *ecrt_startup_master(
         unsigned int index, /**< Master index (0-based). */
         ec_transport_t *transport, /**< Main transport (created, not yet opened). */
         ec_transport_t *backup_transport, /**< Backup transport, or NULL. */
         unsigned int debug_level, /**< Debug verbosity level. */
-        int run_on_cpu /**< CPU affinity, or -1 for no binding. */
+        int run_on_cpu, /**< CPU affinity, or -1 for no binding. */
+        int irq_cpu /**< CPU for the NIC IRQs, or -1 to leave them. */
         );
 
 /** Cleanup the userspace master library.

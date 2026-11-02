@@ -98,7 +98,7 @@ int main(void)
     /* ecrt_startup_master() calls ec_transport_open() -> sim_open(), which
      * parses the file and builds the emulated bus; startup then blocks
      * until the scan completes. */
-    master = ecrt_startup_master(0, transport, NULL, 0, -1);
+    master = ecrt_startup_master(0, transport, NULL, 0, -1, -1);
     TEST_CHECK(master != NULL);
 
     if (master) {

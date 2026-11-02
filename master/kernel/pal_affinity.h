@@ -27,18 +27,6 @@
 #ifndef __EC_KERNEL_PAL_AFFINITY_H__
 #define __EC_KERNEL_PAL_AFFINITY_H__
 
-/** No-op: kernel master does not track RT CPU affinity. */
-static inline void ec_pal_record_rt_cpu(ec_master_t *master)
-{
-    (void)master;
-}
-
-/** No-op: kernel master does not pin transport IRQs. */
-static inline void ec_pal_check_irq_affinity(ec_master_t *master)
-{
-    (void)master;
-}
-
 /** No-op: kernel device link state is updated by the NIC driver via
  * ecdev_set_link(). */
 static inline void ec_pal_check_link_states(ec_master_t *master)

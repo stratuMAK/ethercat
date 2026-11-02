@@ -362,7 +362,7 @@ When enabled, implies:
 | `master/uspace/pal.c` | Logging dispatch, misc PAL functions |
 | `master/uspace/pal.h` | Master PAL header (includes all sub-PAL headers) |
 | `master/uspace/pal_eoe.c/h` | EoE PAL: TAP device, skb emulation, TX polling |
-| `master/uspace/pal_affinity.h` | NIC IRQ CPU affinity pinning (records RT CPU, updates smp_affinity) |
+| `master/uspace/pal_affinity.h` | Device link-state poll (the NIC IRQs are pinned once in `ecrt_startup_master()`, `irq_cpu`) |
 | `master/uspace/pal_thread.c/h` | Thread abstraction → pthreads |
 | `master/uspace/pal_work.c/h` | Work queue abstraction |
 | `master/uspace/pal_irq_work.c/h` | IRQ work abstraction |

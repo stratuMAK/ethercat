@@ -51,7 +51,8 @@ vim: spelllang=en spell
   - Lock-free fallback logging from realtime contexts.
   - `ECRT_RT_ATTR` function annotations for compile-time RT verification
     of application code (clang function-effects analysis).
-  - Automatic NIC IRQ affinity pinning to the realtime CPU.
+  - NIC IRQ affinity pinning to the realtime CPU, before the first bus
+    scan (`irq_cpu` of `ecrt_startup_master()`).
 - Parallel Slave Configuration (PSC): slaves are configured
   concurrently, reducing bus startup time.
 - `ethercat` command-line tool connects over a Unix domain socket

@@ -110,8 +110,6 @@ typedef struct {
     struct ec_transport *backup_transport; /**< Backup transport (borrowed, NULL if none). */
     uint8_t main_mac[ETH_ALEN];           /**< Copied MAC address. */
     uint8_t backup_mac[ETH_ALEN];         /**< Copied backup MAC address. */
-    _Atomic int rt_cpu;                   /**< CPU where ecrt_master_receive() last ran (-1 = unknown). */
-    int affinity_cpu;                     /**< CPU to which transport IRQs are currently pinned (-1 = none). */
 } ec_master_pal_t;
 
 #endif /* __EC_USPACE_PAL_H__ */
